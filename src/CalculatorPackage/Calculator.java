@@ -9,20 +9,21 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.plaf.basic.BasicArrowButton;
 
 
-// TODO: Support for floats instead of only ints
-// TODO: After typing a number, an operator, the second number and then another operator we need to clear the TextField and make sure to first perform the first operation to later perform the second one 
-// TODO: Support for the other button such as % . +- and B
+// TODO: Support for the % button
+// TODO: Error catching when an input doesn't make sense
+
 public class Calculator implements ActionListener{
 	JTextField results;
 	String numberInResults;
 	String operator;
-	String secondNumber;
 	Boolean operationInProgress;
 	
 	// Constructor of our class
@@ -57,7 +58,7 @@ public class Calculator implements ActionListener{
 		topPanel.add(results, BorderLayout.CENTER);
 		
 		// Creating all the buttons and adding them to the bottomLayout 
-		CalculatorButton buttonBack = new CalculatorButton("B");
+		CalculatorButton buttonBack = new CalculatorButton("<");
 		buttonBack.getButton().addActionListener(this);
 		buttonBack.getButton().setFont(font1);
 		
@@ -171,6 +172,7 @@ public class Calculator implements ActionListener{
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
+		// If = is pressed
 		if(e.getActionCommand().equals("=")) {
 			// If = is typed, we need to calculate the results of the operation based on what the string numberInResults is,
 			// We need to loop in the string until finding a non integer, all numbers before this non integer is the first number, all the numbers after the non-integer is the second number
@@ -179,7 +181,14 @@ public class Calculator implements ActionListener{
 			// We don't need the operator because we have it stored in the global 'operator' variable
 			for(int i = 0; i < numberInResults.length(); i++) {
 				char checking = numberInResults.charAt(i);
-				if(numberInResults.charAt(i) >= '0' && numberInResults.charAt(i) <= '9') {
+				
+				// If the first symbol in the number is '-' signaling a negative number
+				if(i == 0 && numberInResults.charAt(0) == '-') {
+					firstNumber.append(numberInResults.charAt(i));
+					continue;
+				}
+				
+				if((numberInResults.charAt(i) >= '0' && numberInResults.charAt(i) <= '9') || numberInResults.charAt(i) == '.') {
 					// We create an string that will hold this number to then later convert it to an integer
 					firstNumber.append(numberInResults.charAt(i));
 				}else {
@@ -191,42 +200,102 @@ public class Calculator implements ActionListener{
 				secondNumber.append(numberInResults.charAt(i));
 			}
 			
-			// Now we convert both numbers to integers to be able to perform the operation
-			int firstNumberInt = Integer.parseInt(firstNumber.toString());
-			int secondNumberInt = Integer.parseInt(secondNumber.toString());
+			// Now we convert both numbers to floats to be able to perform the operation
+			float firstNumberInt = Float.parseFloat(firstNumber.toString());
+			float secondNumberInt = Float.parseFloat(secondNumber.toString());
 			
-			numberInResults = Integer.toString(performOperation(firstNumberInt, secondNumberInt));
-		}else if(e.getActionCommand().equals("+") || e.getActionCommand().equals("-") || e.getActionCommand().equals("*") || e.getActionCommand().equals("/")) { //if any of the operators is typed 
-			operator = e.getActionCommand();
-			numberInResults = numberInResults + operator;
-		}else if(e.getActionCommand().equals("C")) {
+			numberInResults = Float.toString(performOperation(firstNumberInt, secondNumberInt));
+			
+			operationInProgress = false;
+		}
+		// If any of the operations is pressed +, -, * or /
+		else if(e.getActionCommand().equals("+") || e.getActionCommand().equals("-") || e.getActionCommand().equals("*") || e.getActionCommand().equals("/")) { 
+			//if any of the operators is typed for the first time 
+			if(operationInProgress == false) {
+				operator = e.getActionCommand();
+				numberInResults = numberInResults + operator;
+				operationInProgress = true;
+			}
+			// if any of the operators is typed a second time instead of an equal sign
+			else {
+				// We need to loop in the string until finding a non integer, all numbers before this non integer is the first number, all the numbers after the non-integer is the second number
+				StringBuilder firstNumber = new StringBuilder();
+				StringBuilder secondNumber = new StringBuilder();
+				// We don't need the operator because we have it stored in the global 'operator' variable
+				for(int i = 0; i < numberInResults.length(); i++) {
+					char checking = numberInResults.charAt(i);
+					
+					// If the first symbol in the number is '-' signaling a negative number
+					if(i == 0 && numberInResults.charAt(0) == '-') {
+						firstNumber.append(numberInResults.charAt(i));
+						continue;
+					}
+					
+					if((numberInResults.charAt(i) >= '0' && numberInResults.charAt(i) <= '9') || numberInResults.charAt(i) == '.') {
+						// We create an string that will hold this number to then later convert it to an integer
+						firstNumber.append(numberInResults.charAt(i));
+					}else {
+						break;
+					}
+				}
+				for(int i = firstNumber.length()+1; i < numberInResults.length(); i++) {
+					// We know that from here all elements in the numberInResults string are numbers so we don't check for other characters
+					secondNumber.append(numberInResults.charAt(i));
+				}
+				
+				// Now we convert both numbers to floats to be able to perform the operation
+				float firstNumberInt = Float.parseFloat(firstNumber.toString());
+				float secondNumberInt = Float.parseFloat(secondNumber.toString());
+				
+				numberInResults = Float.toString(performOperation(firstNumberInt, secondNumberInt));
+				
+				operator = e.getActionCommand();
+				numberInResults = numberInResults + operator;
+			}
+		}
+		// If C is pressed to clean the screen
+		else if(e.getActionCommand().equals("C")) {
 			numberInResults = "";
-		}else {
+			operationInProgress = false;
+		}
+		// If plus minus is pressed to change the sign
+		else if(e.getActionCommand().equals("±")) {
+			if(numberInResults.charAt(0) == '-') {
+				StringBuilder newNumberInResults = new StringBuilder();
+				for(int i = 1; i < numberInResults.length(); i++) {
+					newNumberInResults.append(numberInResults.charAt(i));
+				}
+				numberInResults = newNumberInResults.toString();
+			}else {
+				numberInResults = "-" + numberInResults;
+			}
+		}
+		// If the back arrow button is pressed
+		else if(e.getActionCommand().equals("<")) {
+			StringBuilder newNumberInResults = new StringBuilder();
+			
+			if(numberInResults.charAt(numberInResults.length()-1) == '*' || numberInResults.charAt(numberInResults.length()-1) == '-' || numberInResults.charAt(numberInResults.length()-1) == '+' || numberInResults.charAt(numberInResults.length()-1) == '/') {
+				operationInProgress = false;
+			}
+			
+			for(int i = 0; i < numberInResults.length()-1; i++) {
+				newNumberInResults.append(numberInResults.charAt(i));
+			}
+			
+			numberInResults = newNumberInResults.toString();
+		}
+		// If % is pressed
+		else if(e.getActionCommand().equals("%")) {
+			if(operationInProgress) {
+				numberInResults = numberInResults + e.getActionCommand();
+			}else {
+				numberInResults = "0";
+			}
+		}
+		// If any of the numbers is pressed
+		else {
 			numberInResults = numberInResults + e.getActionCommand();
 		}
-		/*if(e.getActionCommand().equals("1")) {
-			numberInResults = numberInResults + "1";
-		}else if(e.getActionCommand().equals("2")) {
-			numberInResults = numberInResults + "2";
-		}else if(e.getActionCommand().equals("3")) {
-			numberInResults = numberInResults + "3";
-		}else if(e.getActionCommand().equals("4")) {
-			numberInResults = numberInResults + "4";
-		}else if(e.getActionCommand().equals("5")) {
-			numberInResults = numberInResults + "5";
-		}else if(e.getActionCommand().equals("6")) {
-			numberInResults = numberInResults + "6";
-		}else if(e.getActionCommand().equals("7")) {
-			numberInResults = numberInResults + "7";
-		}else if(e.getActionCommand().equals("8")) {
-			numberInResults = numberInResults + "8";
-		}else if(e.getActionCommand().equals("9")) {
-			numberInResults = numberInResults + "9";
-		}else if(e.getActionCommand().equals("0")) {
-			numberInResults = numberInResults + "0";
-		}else if(e.getActionCommand().equals(".")) {
-			numberInResults = numberInResults + ".";
-		}*/
 		
 		results.setText(numberInResults);
 	}
@@ -234,8 +303,8 @@ public class Calculator implements ActionListener{
 	//  @ Description: Function that takes in two numbers, checks the current operator and performs the operation based on these three inputs
 	//	@ Param: firstNumber and secondNumber to perform the operation on
 	//	@ Output: the result of performing the operation
-	public int performOperation(int firstNumber, int secondNumber) {
-		int result = 0;
+	public float performOperation(float firstNumber, float secondNumber) {
+		float result = 0;
 		switch(operator) {
 			case "+":
 				result = firstNumber + secondNumber;
