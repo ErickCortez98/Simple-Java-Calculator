@@ -16,20 +16,20 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.plaf.basic.BasicArrowButton;
 
-
-// TODO: Support for the % button
 // TODO: Error catching when an input doesn't make sense
 
 public class Calculator implements ActionListener{
 	JTextField results;
 	String numberInResults;
 	String operator;
-	Boolean operationInProgress;
+	boolean operationInProgress;
+	boolean percentageActive;
 	
 	// Constructor of our class
 	public Calculator() {
 		numberInResults = "";
 		operationInProgress = false;
+		percentageActive = false;
 		
 		// Setting up the frame - creating frame, setSize, setCloseOperation, setVisible
 		JFrame calculatorFrame = new JFrame("La Calculadora");
@@ -197,6 +197,10 @@ public class Calculator implements ActionListener{
 			}
 			for(int i = firstNumber.length()+1; i < numberInResults.length(); i++) {
 				// We know that from here all elements in the numberInResults string are numbers so we don't check for other characters
+				if((i == numberInResults.length()-1) && (numberInResults.charAt(i) == '%')) {
+					percentageActive = true;
+					break;
+				}
 				secondNumber.append(numberInResults.charAt(i));
 			}
 			
@@ -204,7 +208,7 @@ public class Calculator implements ActionListener{
 			float firstNumberInt = Float.parseFloat(firstNumber.toString());
 			float secondNumberInt = Float.parseFloat(secondNumber.toString());
 			
-			numberInResults = Float.toString(performOperation(firstNumberInt, secondNumberInt));
+			numberInResults = Float.toString(performOperation(firstNumberInt, secondNumberInt, percentageActive));
 			
 			operationInProgress = false;
 		}
@@ -240,17 +244,22 @@ public class Calculator implements ActionListener{
 				}
 				for(int i = firstNumber.length()+1; i < numberInResults.length(); i++) {
 					// We know that from here all elements in the numberInResults string are numbers so we don't check for other characters
+					if((i == numberInResults.length()-1) && (numberInResults.charAt(i) == '%')) {
+						percentageActive = true;
+						break;
+					}
+					
 					secondNumber.append(numberInResults.charAt(i));
 				}
-				
 				// Now we convert both numbers to floats to be able to perform the operation
 				float firstNumberInt = Float.parseFloat(firstNumber.toString());
 				float secondNumberInt = Float.parseFloat(secondNumber.toString());
 				
-				numberInResults = Float.toString(performOperation(firstNumberInt, secondNumberInt));
+				numberInResults = Float.toString(performOperation(firstNumberInt, secondNumberInt, percentageActive));
 				
 				operator = e.getActionCommand();
 				numberInResults = numberInResults + operator;
+				
 			}
 		}
 		// If C is pressed to clean the screen
@@ -289,7 +298,7 @@ public class Calculator implements ActionListener{
 			if(operationInProgress) {
 				numberInResults = numberInResults + e.getActionCommand();
 			}else {
-				numberInResults = "0";
+				numberInResults = "";
 			}
 		}
 		// If any of the numbers is pressed
@@ -303,21 +312,40 @@ public class Calculator implements ActionListener{
 	//  @ Description: Function that takes in two numbers, checks the current operator and performs the operation based on these three inputs
 	//	@ Param: firstNumber and secondNumber to perform the operation on
 	//	@ Output: the result of performing the operation
-	public float performOperation(float firstNumber, float secondNumber) {
+	public float performOperation(float firstNumber, float secondNumber, boolean percentageActive) {
 		float result = 0;
-		switch(operator) {
+		if(percentageActive) {
+			this.percentageActive = false;
+			switch(operator) {
 			case "+":
-				result = firstNumber + secondNumber;
+				// Divide second number by first number, multiply by 100, then add to first number
+				result = firstNumber + (secondNumber/100)*firstNumber;
 				break;
 			case "-":
-				result = firstNumber - secondNumber;
+				result = firstNumber - (secondNumber/100)*firstNumber;
 				break;
 			case "*":
-				result = firstNumber * secondNumber;
+				result = firstNumber * (secondNumber/100)*firstNumber;
 				break;
 			case "/":
-				result = firstNumber / secondNumber;
+				result = firstNumber / ((secondNumber/100)*firstNumber);
 				break;
+			}
+		}else {
+			switch(operator) {
+				case "+":
+					result = firstNumber + secondNumber;
+					break;
+				case "-":
+					result = firstNumber - secondNumber;
+					break;
+				case "*":
+					result = firstNumber * secondNumber;
+					break;
+				case "/":
+					result = firstNumber / secondNumber;
+					break;
+			}
 		}
 		return result;
 	}	
